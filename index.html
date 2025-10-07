@@ -1,75 +1,76 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
-  <title>7x7 Flip-Pattern Fill — with Cookie Save</title>
-  <style>
-    body{font-family:system-ui,Segoe UI,Roboto,"Noto Sans KR",Arial;margin:10px;background:#fafafa;color:#111;display:flex;flex-direction:row;gap:24px;flex-wrap:wrap;justify-content:center}
-    h1{font-size:22px;margin-bottom:10px;text-align:center}
-    .container{display:flex;flex-wrap:wrap;gap:24px;justify-content:center}
-    .left{max-width:100%;display:flex;flex-direction:column;align-items:center}
-    .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 4px 14px rgba(20,20,20,0.06);width:100%;max-width:320px}
-    .cell{aspect-ratio:1/1;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700;font-size:14px;transition:background 0.2s}
-    .cell.off{background:#f3f3f3;color:#888}
-    .cell.on{background:#2b8aef;color:white}
-    .controls{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-    button,select{padding:8px 10px;border-radius:8px;border:1px solid #ddd;background:white;cursor:pointer;font-size:14px}
-    .info{margin-top:12px;background:#fff;padding:10px;border-radius:8px;box-shadow:0 4px 14px rgba(20,20,20,0.04);font-size:14px;width:100%;max-width:320px;text-align:center}
-    .placement{font-family:monospace;word-break:break-all}
-    .right{max-width:380px;line-height:1.6;background:#fff;padding:16px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.05);flex:1 1 320px}
-    .right h2{font-size:18px;margin-top:0;text-align:center}
-    .right ul{padding-left:20px}
-    @media (max-width:600px){
-      .container{flex-direction:column;align-items:center}
-      .right{max-width:90%;font-size:15px}
-    }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+<title>7x7 Flip-Pattern Fill — with Cookie Save & Undo</title>
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,"Noto Sans KR",Arial;margin:10px;background:#fafafa;color:#111;display:flex;flex-direction:row;gap:24px;flex-wrap:wrap;justify-content:center}
+h1{font-size:22px;margin-bottom:10px;text-align:center}
+.container{display:flex;flex-wrap:wrap;gap:24px;justify-content:center}
+.left{max-width:100%;display:flex;flex-direction:column;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 4px 14px rgba(20,20,20,0.06);width:100%;max-width:320px}
+.cell{aspect-ratio:1/1;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700;font-size:14px;transition:background 0.2s}
+.cell.off{background:#f3f3f3;color:#888}
+.cell.on{background:#2b8aef;color:white}
+.controls{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+button,select{padding:8px 10px;border-radius:8px;border:1px solid #ddd;background:white;cursor:pointer;font-size:14px}
+.info{margin-top:12px;background:#fff;padding:10px;border-radius:8px;box-shadow:0 4px 14px rgba(20,20,20,0.04);font-size:14px;width:100%;max-width:320px;text-align:center}
+.placement{font-family:monospace;word-break:break-all}
+.right{max-width:380px;line-height:1.6;background:#fff;padding:16px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.05);flex:1 1 320px}
+.right h2{font-size:18px;margin-top:0;text-align:center}
+.right ul{padding-left:20px}
+@media (max-width:600px){
+  .container{flex-direction:column;align-items:center}
+  .right{max-width:90%;font-size:15px}
+}
+</style>
 </head>
 <body>
-  <div class="container">
-    <div class="left">
-      <h1>7×7 Flip-Pattern Fill — HTML/JS + 쿠키 저장</h1>
-      <div id="grid" class="grid"></div>
-      <div class="controls">
-        <label>패턴: <select id="pattern-select"></select></label>
-        <button id="recommend">추천 배치 표시</button>
-        <button id="apply">적용</button>
-        <button id="random-flip">랜덤 패턴 자동 적용</button>
-        <button id="clear">초기화</button>
-      </div>
-      <div class="info">
-        <div>추천 배치: <span id="placement" class="placement">(none)</span></div>
-        <div>채워진 칸: <strong id="fill">0%</strong></div>
-      </div>
+<div class="container">
+  <div class="left">
+    <h1>7×7 Flip-Pattern Fill — HTML/JS + 쿠키 저장 & Undo</h1>
+    <div id="grid" class="grid"></div>
+    <div class="controls">
+      <label>패턴: <select id="pattern-select"></select></label>
+      <button id="recommend">추천 배치 표시</button>
+      <button id="apply">적용</button>
+      <button id="random-flip">랜덤 패턴 자동 적용</button>
+      <button id="clear">초기화</button>
+      <button id="undo">뒤로 되돌리기</button>
     </div>
-
-    <div class="right">
-      <h2>게임 설명</h2>
-      <p><strong>목표:</strong> 7×7 빙고판을 가능한 한 <em>가장 적은 플립 횟수</em>로 모두 채우는 것입니다.</p>
-      <ul>
-        <li><strong>X</strong>: 대각선 방향 5칸</li>
-        <li><strong>CROSS</strong>: 십자가 방향 5칸</li>
-        <li><strong>SQUARE</strong>: 3×3 정사각형 9칸</li>
-        <li><strong>HROW</strong>: 가로줄 전체 7칸</li>
-        <li><strong>VCOL</strong>: 세로줄 전체 7칸</li>
-      </ul>
-      <p>각 패턴은 클릭 시 빙고판 위의 칸을 <code>1</code>로 만듭니다. “추천 배치 표시”를 누르면 현재 판에서 가장 효율적으로 빈칸을 채울 위치가 표시됩니다.</p>
-      <p><strong>자동 실행:</strong> “랜덤 패턴 자동 적용” 버튼을 누르면 랜덤 패턴을 자동으로 적용해 전체를 채워 나가는 과정을 시각화합니다.</p>
-      <p>이 프로젝트는 <em>Greedy Heuristic</em>을 사용해 매 턴마다 가장 많은 빈칸을 채우는 위치를 선택합니다.</p>
-      <p>*블럭 클릭하면 개별적으로 온/오프 가능하며, 상태는 쿠키로 저장됩니다.</p>
+    <div class="info">
+      <div>추천 배치: <span id="placement" class="placement">(none)</span></div>
+      <div>채워진 칸: <strong id="fill">0%</strong></div>
     </div>
   </div>
+
+  <div class="right">
+    <h2>게임 설명</h2>
+    <p><strong>목표:</strong> 7×7 빙고판을 가능한 한 <em>가장 적은 플립 횟수</em>로 모두 채우는 것입니다.</p>
+    <ul>
+      <li><strong>×</strong>: 대각선 방향 5칸</li>
+      <li><strong>✚</strong>: 십자가 방향 5칸</li>
+      <li><strong>■</strong>: 3×3 정사각형 9칸</li>
+      <li><strong>ㅡ</strong>: 가로줄 전체 7칸</li>
+      <li><strong>ㅣ</strong>: 세로줄 전체 7칸</li>
+    </ul>
+    <p>각 패턴은 클릭 시 빙고판 위의 칸을 <code>1</code>로 만듭니다. “추천 배치 표시”를 누르면 현재 판에서 가장 효율적으로 빈칸을 채울 위치가 표시됩니다.</p>
+    <p><strong>자동 실행:</strong> “랜덤 패턴 자동 적용” 버튼을 누르면 랜덤 패턴을 자동으로 적용해 전체를 채워 나가는 과정을 시각화합니다.</p>
+    <p>이 프로젝트는 <em>Greedy Heuristic</em>을 사용해 매 턴마다 가장 많은 빈칸을 채우는 위치를 선택합니다.</p>
+    <p>*블럭 클릭하면 개별적으로 온/오프 가능하며, 상태는 쿠키로 저장됩니다.</p>
+  </div>
+</div>
 
 <script>
 // --- 기본 설정 ---
 const N = 7;
 const PATTERNS = {
-  'X': [[0,0],[-1,-1],[-1,1],[1,-1],[1,1]],
-  'CROSS': [[0,0],[-1,0],[1,0],[0,-1],[0,1]],
-  'SQUARE': [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],
-  'HROW': Array.from({length:7},(_,i)=>[0,i]),
-  'VCOL': Array.from({length:7},(_,i)=>[i,0])
+  '×': [[0,0],[-1,-1],[-1,1],[1,-1],[1,1]],
+  '✚': [[0,0],[-1,0],[1,0],[0,-1],[0,1]],
+  '■': [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],
+  'ㅡ':Array.from({length:7},(_,i)=>[0,i]),
+  'ㅣ': Array.from({length:7},(_,i)=>[i,0])
 };
 
 // --- 쿠키 함수 ---
@@ -102,12 +103,15 @@ const PLACEMENTS=computePlacements();
 // --- 초기 보드 상태 ---
 let board = new Array(N*N).fill(0);
 const saved = getCookie('boardState7x7');
-if(saved) {
-  try { board = JSON.parse(saved); }
-  catch(e){ console.warn('쿠키 파싱 실패'); }
-}
+if(saved){ try { board = JSON.parse(saved); } catch(e){ console.warn('쿠키 파싱 실패'); } }
 
 let highlight=null;
+let history = []; // Undo 기록
+
+function saveHistory(){
+  history.push(board.slice());
+  if(history.length>20) history.shift(); // 최대 20단계 저장
+}
 
 // --- 보드 함수 ---
 function idx(r,c){return r*N+c;}
@@ -128,8 +132,33 @@ function greedyPlacement(b,pattern){
   return best;
 }
 
+// --- 패턴 클릭 적용 ---
+function applyPatternAtCell(r,c,pattern){
+  const offs = PATTERNS[pattern];
+  let centerOffset=[0,0];
+  if(pattern==='■'){ // 3x3 정사각형은 중앙 기준
+    centerOffset=[1,1]; // 클릭 셀을 중앙에 두기
+  }
+  else if(pattern==='ㅡ') centerOffset=[0,3];
+  else if(pattern==='ㅣ') centerOffset=[3,0];
+  for(const [dr,dc] of offs){
+    const nr = r + dr - centerOffset[0];
+    const nc = c + dc - centerOffset[1];
+    if(nr>=0 && nr<N && nc>=0 && nc<N){
+      const i = idx(nr,nc);
+      if(board[i]===0) board[i]=1;
+    }
+  }
+  highlight=null;
+  setCookie('boardState7x7', JSON.stringify(board));
+  updateStatus();
+  renderGrid();
+}
+
 // --- 렌더링 ---
 const gridEl=document.getElementById('grid');
+const patternSelect=document.getElementById('pattern-select');
+
 function renderGrid(){
   gridEl.innerHTML='';
   for(let r=0;r<N;r++){
@@ -138,16 +167,23 @@ function renderGrid(){
       const val=board[i];
       const el=document.createElement('div');
       el.className='cell '+(val?'on':'off');
-      if(highlight&&highlight.some(pair=>pair[0]===r&&pair[1]===c))
+      if(highlight && highlight.some(pair=>pair[0]===r && pair[1]===c))
         el.style.boxShadow='0 0 0 3px rgba(43,138,239,0.18)';
-      el.textContent=val?'●':'';
-      el.onclick=()=>{
-        board[i]=board[i]?0:1;
-        highlight=null;
-        updateStatus();
-        setCookie('boardState7x7', JSON.stringify(board));
-        renderGrid();
+      el.textContent = val?'●':'';
+
+      el.onclick = () => {
+        saveHistory();
+        if(patternSelect.value){ // 선택된 패턴 적용
+          applyPatternAtCell(r,c,patternSelect.value);
+        } else { // 기존 토글
+          board[i] = 1 - board[i];
+          highlight=null;
+          setCookie('boardState7x7', JSON.stringify(board));
+          updateStatus();
+          renderGrid();
+        }
       };
+
       gridEl.appendChild(el);
     }
   }
@@ -160,7 +196,6 @@ function updateStatus(){
 }
 
 // --- 패턴 셀렉터 ---
-const patternSelect=document.getElementById('pattern-select');
 for(const p of Object.keys(PATTERNS)){
   const o=document.createElement('option');
   o.value=p;o.textContent=p;
@@ -175,19 +210,32 @@ document.getElementById('recommend').onclick=()=>{
   document.getElementById('placement').textContent=coords?coords.map(([r,c])=>`(${r},${c})`).join(' '):'(none)';
   renderGrid();
 };
+
 document.getElementById('apply').onclick=()=>{
   if(!highlight){alert('먼저 추천 배치를 표시하세요.');return;}
+  saveHistory();
   board=applyPlacement(board,highlight);
   setCookie('boardState7x7', JSON.stringify(board));
   highlight=null;
-  renderGrid();updateStatus();
+  renderGrid(); updateStatus();
 };
+
 document.getElementById('clear').onclick=()=>{
+  saveHistory();
   board=new Array(N*N).fill(0);
   highlight=null;
   setCookie('boardState7x7', JSON.stringify(board));
-  renderGrid();updateStatus();
+  renderGrid(); updateStatus();
   document.getElementById('placement').textContent='(none)';
+};
+
+document.getElementById('undo').onclick=()=>{
+  if(history.length===0){ alert('더 이상 되돌릴 수 없습니다'); return; }
+  board = history.pop();
+  setCookie('boardState7x7', JSON.stringify(board));
+  highlight=null;
+  renderGrid();
+  updateStatus();
 };
 
 // --- 자동 랜덤 실행 ---
@@ -207,7 +255,10 @@ document.getElementById('random-flip').onclick=()=>{
       const coords=greedyPlacement(board,p);
       highlight=coords;renderGrid();
       await new Promise(res=>setTimeout(res,350));
-      if(coords) board=applyPlacement(board,coords);
+      if(coords) {
+        saveHistory();
+        board=applyPlacement(board,coords);
+      }
       setCookie('boardState7x7', JSON.stringify(board));
       updateStatus();
       await new Promise(res=>setTimeout(res,220));
