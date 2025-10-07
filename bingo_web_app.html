@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>7x7 Flip-Pattern Fill — Demo</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Roboto,"Noto Sans KR",Arial;margin:10px;background:#fafafa;color:#111;display:flex;flex-direction:row;gap:24px;flex-wrap:wrap;justify-content:center}
+    h1{font-size:22px;margin-bottom:10px;text-align:center}
+    .container{display:flex;flex-wrap:wrap;gap:24px;justify-content:center}
+    .left{max-width:100%;display:flex;flex-direction:column;align-items:center}
+    .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;background:#fff;padding:12px;border-radius:8px;box-shadow:0 4px 14px rgba(20,20,20,0.06);width:100%;max-width:320px}
+    .cell{aspect-ratio:1/1;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:700;font-size:14px}
+    .cell.off{background:#f3f3f3;color:#888}
+    .cell.on{background:#2b8aef;color:white}
+    .controls{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+    button,select{padding:8px 10px;border-radius:8px;border:1px solid #ddd;background:white;cursor:pointer;font-size:14px}
+    .info{margin-top:12px;background:#fff;padding:10px;border-radius:8px;box-shadow:0 4px 14px rgba(20,20,20,0.04);font-size:14px;width:100%;max-width:320px;text-align:center}
+    .placement{font-family:monospace;word-break:break-all}
+    .right{max-width:380px;line-height:1.6;background:#fff;padding:16px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.05);flex:1 1 320px}
+    .right h2{font-size:18px;margin-top:0;text-align:center}
+    .right ul{padding-left:20px}
+    @media (max-width:600px){
+      .container{flex-direction:column;align-items:center}
+      .right{max-width:90%;font-size:15px}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="left">
+      <h1>7×7 Flip-Pattern Fill — HTML/JS 데모</h1>
+      <div id="grid" class="grid"></div>
+      <div class="controls">
+        <label>패턴: <select id="pattern-select"></select></label>
+        <button id="recommend">추천 배치 표시</button>
+        <button id="apply">적용</button>
+        <button id="random-flip">랜덤 패턴 자동 적용</button>
+        <button id="clear">초기화</button>
+      </div>
+      <div class="info">
+        <div>추천 배치: <span id="placement" class="placement">(none)</span></div>
+        <div>채워진 칸: <strong id="fill">0%</strong></div>
+      </div>
+    </div>
+
+    <div class="right">
+      <h2>게임 설명</h2>
+      <p><strong>목표:</strong> 7×7 빙고판을 가능한 한 <em>가장 적은 플립 횟수</em>로 모두 채우는 것입니다.</p>
+      <ul>
+        <li><strong>X</strong>: 대각선 방향 5칸</li>
+        <li><strong>CROSS</strong>: 십자가 방향 5칸</li>
+        <li><strong>SQUARE</strong>: 3×3 정사각형 9칸</li>
+        <li><strong>HROW</strong>: 가로줄 전체 7칸</li>
+        <li><strong>VCOL</strong>: 세로줄 전체 7칸</li>
+      </ul>
+      <p>각 패턴은 클릭 시 빙고판 위의 칸을 <code>1</code>로 만듭니다. “추천 배치 표시”를 누르면 현재 판에서 가장 효율적으로 빈칸을 채울 위치가 표시됩니다.</p>
+      <p><strong>자동 실행:</strong> “랜덤 패턴 자동 적용” 버튼을 누르면 랜덤 패턴을 자동으로 적용해 전체를 채워 나가는 과정을 시각화합니다.</p>
+      <p>이 프로젝트는 <em>Greedy Heuristic</em>을 사용해 매 턴마다 가장 많은 빈칸을 채우는 위치를 선택합니다. 최적(최소 단계) 해를 보장하지는 않지만, 빠르게 근사 결과를 얻을 수 있습니다.</p>
+
+      <h2>빠른 배포 방법</h2>
+      <ol>
+        <li>이 HTML 파일을 <code>index.html</code>로 저장하세요.</li>
+        <li>GitHub에 새 리포지토리를 만든 후 파일을 업로드합니다.</li>
+        <li>리포지토리 설정(Settings) → Pages → Branch: <code>main</code> → <code>/ (root)</code> 선택 → 저장.</li>
+        <li>잠시 후 <code>https://사용자명.github.io/리포지토리명</code> 에서 실행됩니다.</li>
+      </ol>
+      <p>또는 <strong>Netlify</strong>나 <strong>Vercel</strong>에서 “Deploy Static Site” 기능을 이용하면 파일을 드래그 앤 드롭만으로 배포 가능합니다.</p>
+    </div>
+  </div>
+
+<script>
+// 기존 JS 그대로 유지
+const N = 7;
+const PATTERNS = {
+  'X': [[0,0],[-1,-1],[-1,1],[1,-1],[1,1]],
+  'CROSS': [[0,0],[-1,0],[1,0],[0,-1],[0,1]],
+  'SQUARE': [[0,0],[0,1],[0,2],[1,0],[1,1],[1,2],[2,0],[2,1],[2,2]],
+  'HROW': Array.from({length:7},(_,i)=>[0,i]),
+  'VCOL': Array.from({length:7},(_,i)=>[i,0])
+};
+
+function computePlacements(){
+  const placements={};
+  for(const name in PATTERNS){
+    const offs=PATTERNS[name];
+    placements[name]=[];
+    for(let ar=0;ar<N;ar++){
+      for(let ac=0;ac<N;ac++){
+        const coords=offs.map(([dr,dc])=>[ar+dr,ac+dc]);
+        if(coords.every(([r,c])=>r>=0&&r<N&&c>=0&&c<N)) placements[name].push(coords);
+      }
+    }
+  }
+  return placements;
+}
+const PLACEMENTS=computePlacements();
+
+let board=new Array(N*N).fill(0);
+let highlight=null;
+
+function idx(r,c){return r*N+c;}
+
+function applyPlacement(b,coords){
+  const nb=b.slice();
+  for(const [r,c] of coords) nb[idx(r,c)]=1;
+  return nb;
+}
+
+function fillRate(b){
+  const filled=b.reduce((a,v)=>a+v,0);
+  return filled/(N*N);
+}
+
+function greedyPlacement(b,pattern){
+  const placements=PLACEMENTS[pattern];
+  let best=null; let bestRate=-1;
+  for(const coords of placements){
+    const nb=applyPlacement(b,coords);
+    const rate=fillRate(nb);
+    if(rate>bestRate){bestRate=rate; best=coords;}
+  }
+  return best;
+}
+
+const gridEl=document.getElementById('grid');
+function renderGrid(){
+  gridEl.innerHTML='';
+  for(let r=0;r<N;r++){
+    for(let c=0;c<N;c++){
+      const i=idx(r,c);
+      const val=board[i];
+      const el=document.createElement('div');
+      el.className='cell '+(val?'on':'off');
+      if(highlight&&highlight.some(pair=>pair[0]===r&&pair[1]===c)){
+        el.style.boxShadow='0 0 0 3px rgba(43,138,239,0.18)';
+      }
+      el.textContent=val?'●':'';
+      el.onclick=()=>{board[i]=board[i]?0:1;highlight=null;updateStatus();renderGrid();};
+      gridEl.appendChild(el);
+    }
+  }
+}
+
+function updateStatus(){
+  const rate=(fillRate(board)*100).toFixed(1)+'%';
+  document.getElementById('fill').textContent=rate;
+}
+
+const patternSelect=document.getElementById('pattern-select');
+for(const p of Object.keys(PATTERNS)){
+  const o=document.createElement('option');o.value=p;o.textContent=p;patternSelect.appendChild(o);
+}
+
+document.getElementById('recommend').onclick=()=>{
+  const p=patternSelect.value;
+  const coords=greedyPlacement(board,p);
+  highlight=coords;
+  document.getElementById('placement').textContent=coords?coords.map(([r,c])=>`(${r},${c})`).join(' '):'(none)';
+  renderGrid();
+};
+
+document.getElementById('apply').onclick=()=>{
+  if(!highlight){alert('먼저 추천 배치를 표시하세요.');return;}
+  board=applyPlacement(board,highlight);
+  highlight=null;
+  renderGrid();updateStatus();
+};
+
+document.getElementById('clear').onclick=()=>{board=new Array(N*N).fill(0);highlight=null;renderGrid();updateStatus();document.getElementById('placement').textContent='(none)';};
+
+let autoRunning=false;
+document.getElementById('random-flip').onclick=()=>{
+  if(autoRunning){autoRunning=false;document.getElementById('random-flip').textContent='랜덤 패턴 자동 적용';return;}
+  autoRunning=true;document.getElementById('random-flip').textContent='중지';
+  (async function(){
+    const names=Object.keys(PATTERNS);
+    while(autoRunning&&fillRate(board)<1.0){
+      const p=names[Math.floor(Math.random()*names.length)];
+      const coords=greedyPlacement(board,p);
+      highlight=coords;renderGrid();
+      await new Promise(res=>setTimeout(res,350));
+      if(coords) board=applyPlacement(board,coords);
+      updateStatus();
+      await new Promise(res=>setTimeout(res,220));
+    }
+    autoRunning=false;document.getElementById('random-flip').textContent='랜덤 패턴 자동 적용';
+  })();
+};
+
+renderGrid();updateStatus();
+</script>
+</body>
+</html>
